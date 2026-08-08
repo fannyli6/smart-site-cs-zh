@@ -111,13 +111,27 @@ def _get_mem():
 
 
 # ---------------- 统一对外接口 ----------------
+_chroma_failed = False
+
+
 def _backend():
-    return "chroma" if _HAS_CHROMA else "memory"
+    if _HAS_CHROMA and not _chroma_failed:
+        return "chroma"
+    return "memory"
 
 
 def _collection():
-    if _HAS_CHROMA:
-        return _chroma_collection()
+    if _HAS_CHROMA and not _chroma_failed:
+        try:
+            return _chroma_collection()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Chroma 初始化失败，降级到内存向量库: %s", e
+            )
+            global _chroma_failed
+            _chroma_failed = True
+            return _get_mem()
     return _get_mem()
 
 
