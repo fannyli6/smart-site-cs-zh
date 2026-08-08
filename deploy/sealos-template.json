@@ -1,0 +1,30 @@
+{
+  "apps": [
+    {
+      "name": "ai-cs-backend",
+      "image": "<你的仓库>/smart-site-cs-backend:1.0",
+      "cmd": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
+      "ports": [{ "containerPort": 8000, "protocol": "HTTP" }],
+      "env": [
+        { "name": "DASHSCOPE_API_KEY", "value": "<填写你的百炼API Key>" },
+        { "name": "CHAT_MODEL", "value": "qwen-plus" },
+        { "name": "EMBED_MODEL", "value": "text-embedding-v3" },
+        { "name": "EMBED_DIM", "value": "1024" },
+        { "name": "CHROMA_PERSIST_DIR", "value": "/app/data/chroma" }
+      ],
+      "cpu": "1",
+      "memory": "2Gi",
+      "storage": [{ "mountPath": "/app/data", "size": "10Gi" }]
+    },
+    {
+      "name": "ai-cs-frontend",
+      "image": "<你的仓库>/smart-site-cs-frontend:1.0",
+      "ports": [{ "containerPort": 80, "protocol": "HTTP" }],
+      "env": [
+        { "name": "BACKEND_URL", "value": "http://ai-cs-backend:8000" }
+      ],
+      "cpu": "0.5",
+      "memory": "512Mi"
+    }
+  ]
+}

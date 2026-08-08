@@ -1,0 +1,32 @@
+# 本地一键启动：前后端分离，前端 nginx 反代 /api 到后端
+# 用法：docker compose up --build
+# 前端 http://localhost:8080   后端 http://localhost:8000
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: ai-cs-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - CHAT_MODEL=${CHAT_MODEL:-qwen-plus}
+      - CHROMA_PERSIST_DIR=/app/data/chroma
+    volumes:
+      - kb_data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: ai-cs-frontend
+    ports:
+      - "8080:80"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  kb_data:

@@ -1,0 +1,26 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ===== 运行时数据 / 向量库（容器内挂载持久卷，勿提交本地副本）=====
+backend/data/
+*.chroma
+
+# ===== Node / 前端构建产物（容器构建时重新生成）=====
+node_modules/
+frontend/dist/
+
+# ===== 环境变量 / 密钥（切勿提交）=====
+.env
+.env.*
+
+# ===== 系统 & 编辑器 =====
+.DS_Store
+.idea/
+.vscode/
+
+# ===== 项目内部数据（非交付物）=====
+.workbuddy/
