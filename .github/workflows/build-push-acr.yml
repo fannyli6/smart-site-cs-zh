@@ -30,8 +30,7 @@ jobs:
           tags: |
             ${{ secrets.ACR_REGISTRY }}/muzi06/cs-backend:latest
             ${{ secrets.ACR_REGISTRY }}/muzi06/cs-backend:v-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -57,5 +56,4 @@ jobs:
           tags: |
             ${{ secrets.ACR_REGISTRY }}/muzi06/cs-frontend:latest
             ${{ secrets.ACR_REGISTRY }}/muzi06/cs-frontend:v-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
