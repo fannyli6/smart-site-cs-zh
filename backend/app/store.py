@@ -111,32 +111,34 @@ def _get_mem():
 
 
 # ---------------- 统一对外接口 ----------------
+# 默认内存向量库（零外部依赖，容器内 100% 稳定）。
+# 仅当 VECTOR_BACKEND=chroma 且 chroma 依赖可用时启用 Chroma 持久化。
+_USE_CHROMA = _HAS_CHROMA and getattr(config, "VECTOR_BACKEND", "memory") == "chroma"
 _chroma_failed = False
+import logging as _logging
 
 
 def _backend():
-    if _HAS_CHROMA and not _chroma_failed:
-        return "chroma"
-    return "memory"
+    return "chroma" if (_USE_CHROMA and not _chroma_failed) else "memory"
 
 
-def _collection():
+def _run(op, *args, **kwargs):
+    """执行向量库操作；chroma 模式下异常则降级内存库重试一次。"""
     global _chroma_failed
-    if _HAS_CHROMA and not _chroma_failed:
+    if _USE_CHROMA and not _chroma_failed:
         try:
-            return _chroma_collection()
+            return op(_chroma_collection(), *args, **kwargs)
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(
-                "Chroma 初始化失败，降级到内存向量库: %s", e
+            _logging.getLogger(__name__).warning(
+                "Chroma 操作失败，降级到内存向量库: %s", e
             )
             _chroma_failed = True
-            return _get_mem()
-    return _get_mem()
+            return op(_get_mem(), *args, **kwargs)
+    return op(_get_mem(), *args, **kwargs)
 
 
 def count() -> int:
-    return _collection().count()
+    return _run(lambda c: c.count())
 
 
 def add_chunks(chunks: list[dict]) -> int:
@@ -145,12 +147,12 @@ def add_chunks(chunks: list[dict]) -> int:
     from .embed import embed_texts
     texts = [c["text"] for c in chunks]
     embeddings = embed_texts(texts)
-    _collection().add(
+    _run(lambda c: c.add(
         ids=[c["id"] for c in chunks],
         documents=texts,
         embeddings=embeddings,
         metadatas=[c["metadata"] for c in chunks],
-    )
+    ))
     return len(chunks)
 
 
@@ -159,12 +161,12 @@ def query(text: str, domain: str | None = None, top_k: int = None) -> list[dict]
     from .embed import embed_texts
     q_emb = embed_texts([text])[0]
     where = {"domain": domain} if domain and domain in config.VALID_DOMAINS else None
-    res = _collection().query(
+    res = _run(lambda c: c.query(
         query_embeddings=[q_emb],
         n_results=top_k,
         where=where,
         include=["documents", "metadatas", "distances"],
-    )
+    ))
     out = []
     docs = res["documents"][0]
     metas = res["metadatas"][0]
@@ -178,13 +180,13 @@ def query(text: str, domain: str | None = None, top_k: int = None) -> list[dict]
 
 def delete_by_source(source: str):
     try:
-        _collection().delete(where={"source": source})
+        _run(lambda c: c.delete(where={"source": source}))
     except Exception:
         pass
 
 
 def get_metadatas() -> list:
-    return _collection().get(include=["metadatas"]).get("metadatas", [])
+    return _run(lambda c: c.get(include=["metadatas"]).get("metadatas", []))
 
 
 def backend_name() -> str:

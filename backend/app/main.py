@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from . import config
 from .rag import answer_stream, build_sources, prepare
 from .ingest import ingest_bytes
-from .store import count
+from .store import count, backend_name, get_metadatas
 from .seed import ensure_seed
 from .schemas import ChatRequest
 
@@ -47,7 +47,16 @@ def root():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "chunks": count(), "has_key": bool(config.DASHSCOPE_API_KEY)}
+    try:
+        n = count()
+    except Exception:
+        n = -1
+    return {
+        "status": "ok",
+        "chunks": n,
+        "has_key": bool(config.DASHSCOPE_API_KEY),
+        "backend": backend_name(),
+    }
 
 
 @app.get("/api/domains")
@@ -60,14 +69,17 @@ def stats():
     # 简单统计：总切片 + 按领域聚合（轻量实现）
     by_domain = {k: 0 for k in config.VALID_DOMAINS}
     try:
-        from .store import get_metadatas
         for m in get_metadatas():
             d = m.get("domain")
             if d in by_domain:
                 by_domain[d] += 1
     except Exception:
         pass
-    return {"total_chunks": count(), "by_domain": by_domain}
+    try:
+        total = count()
+    except Exception:
+        total = 0
+    return {"total_chunks": total, "by_domain": by_domain}
 
 
 @app.post("/api/chat")

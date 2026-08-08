@@ -17,6 +17,9 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-v3")
 EMBED_DIM = int(os.getenv("EMBED_DIM", "1024"))
 
 # ---------- 向量库 ----------
+# 默认内存向量库（纯 numpy，零外部依赖，容器内 100% 稳定）。
+# 设置 VECTOR_BACKEND=chroma 可启用 Chroma 持久化（需 chroma 依赖完整可用）。
+VECTOR_BACKEND = os.getenv("VECTOR_BACKEND", "memory").lower()
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(BASE_DIR / "data" / "chroma"))
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "smart_site_kb")
 
