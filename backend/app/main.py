@@ -39,6 +39,12 @@ def _sse(event: dict) -> str:
     return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
 
+@app.get("/")
+def root():
+    # 兼容云平台默认健康检查探针（通常访问 /）
+    return {"status": "ok", "service": "smart-site-ai-cs"}
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "chunks": count(), "has_key": bool(config.DASHSCOPE_API_KEY)}
