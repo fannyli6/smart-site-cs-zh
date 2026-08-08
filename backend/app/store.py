@@ -121,6 +121,7 @@ def _backend():
 
 
 def _collection():
+    global _chroma_failed
     if _HAS_CHROMA and not _chroma_failed:
         try:
             return _chroma_collection()
@@ -129,7 +130,6 @@ def _collection():
             logging.getLogger(__name__).warning(
                 "Chroma 初始化失败，降级到内存向量库: %s", e
             )
-            global _chroma_failed
             _chroma_failed = True
             return _get_mem()
     return _get_mem()
