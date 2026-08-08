@@ -9,6 +9,12 @@ class ChatRequest(BaseModel):
     history: Optional[list[dict]] = None  # 多轮上下文：[{"role","content"}]
 
 
+class FeedbackRequest(BaseModel):
+    conv_id: str                          # 关联的会话 id（可选，会话已落库）
+    rating: int                           # 1~5 星
+    comment: str = ""                     # 评价文字（可选）
+
+
 class SourceItem(BaseModel):
     text: str
     score: float
