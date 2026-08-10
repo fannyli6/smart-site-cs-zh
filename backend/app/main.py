@@ -147,13 +147,26 @@ async def upload(
     file: UploadFile = File(...),
     domain: str = Form(config.DEFAULT_DOMAIN),
 ):
-    data = await file.read()
-    if not data:
-        return JSONResponse({"status": "error", "msg": "空文件"}, status_code=400)
-    n = ingest_bytes(file.filename, data, domain)
-    data_store.upsert_document(
-        source=file.filename, filename=file.filename, domain=domain, chunks=n)
-    return {"status": "ok", "source": file.filename, "chunks": n, "domain": domain}
+    try:
+        data = await file.read()
+        if not data:
+            return JSONResponse({"status": "error", "msg": "空文件"}, status_code=400)
+        n = ingest_bytes(file.filename, data, domain)
+        if n == 0:
+            # 解析成功但提取不到文本（如扫描件/图片型 PDF），友好提示而非静默入库 0 条
+            return JSONResponse(
+                {"status": "error", "msg": "未能从文件中提取到任何文本，可能是扫描件/图片型 PDF（无文字层），请先做 OCR 或转成 Word/TXT 再上传"},
+                status_code=422,
+            )
+        data_store.upsert_document(
+            source=file.filename, filename=file.filename, domain=domain, chunks=n)
+        return {"status": "ok", "source": file.filename, "chunks": n, "domain": domain}
+    except Exception as e:
+        # 解析/向量化任何异常都返回标准 JSON，避免前端 JSON.parse 崩溃
+        return JSONResponse(
+            {"status": "error", "msg": f"上传失败：{e}"},
+            status_code=500,
+        )
 
 
 @app.post("/api/preview-chunks")
