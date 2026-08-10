@@ -14,8 +14,24 @@ from .store import add_chunks, delete_by_source
 # ---------------------- 解析层 ----------------------
 def _read_pdf(data: bytes) -> str:
     from pypdf import PdfReader
-    reader = PdfReader(io.BytesIO(data))
-    return "\n".join((p.extract_text() or "") for p in reader.pages)
+    try:
+        reader = PdfReader(io.BytesIO(data))
+        # 加密文档先尝试空密码解密，失败则明确报错
+        if getattr(reader, "is_encrypted", False):
+            try:
+                reader.decrypt("")
+            except Exception:
+                raise ValueError("PDF 已加密，无法提取文本，请先解除密码后上传")
+        text = "\n".join((p.extract_text() or "") for p in reader.pages)
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(f"PDF 解析失败：{e}")
+    if not text.strip():
+        raise ValueError(
+            "PDF 未提取到文本，可能是扫描件/图片型 PDF（无文字层），请先做 OCR 或转成 Word/TXT 再上传"
+        )
+    return text
 
 
 def _read_docx(data: bytes) -> str:
